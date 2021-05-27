@@ -7,12 +7,30 @@
 }
 
 @font-face
-{ font-family: "DroidSans";
+{ font-family: "Assistant-Light";
 	src: 
-    url('./static/fonts/DroidSans.ttf') 
-    format('truetype');
+    url('./static/fonts/Assitant-Light.otf') 
+    format('opentype');
 }
 
+@font-face
+{ font-family: "Assistant-ExtraLight";
+	src: 
+    url('./static/fonts/Assitant-ExtraLight.otf') 
+    format('opentype');
+}
+@font-face
+{ font-family: "Assistant-Regular";
+	src: 
+    url('./static/fonts/Assitant-Regular.otf') 
+    format('opentype');
+}
+@font-face
+{ font-family: "Assistant-SemiBold";
+	src: 
+    url('./static/fonts/Assitant-SemiBold.otf') 
+    format('opentype');
+}
 html {
   font-size: 10px;
   box-sizing: border-box;
@@ -24,8 +42,9 @@ img {
   height: 100%;
 }
 
+
 a {
-  font-family: 'DroidSans', sans-serif;
+  font-family: 'Assistant-Regular', sans-serif;
   text-decoration: none;
 }
 
@@ -179,7 +198,12 @@ body {
 }
 
 footer {
-  padding: 5rem 0;
+  padding: 2rem 0;
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  text-align: center;
 }
 
 footer .container {
@@ -255,7 +279,4 @@ footer .container {
     margin: 4rem 0;
   }
 
-  footer {
-    padding-bottom: 2rem;
-  }
 }

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Profile Card</title>
+  <meta name="viewport"
+    content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="static/profile_style.css">
+  <link rel="shortcut icon" href="./static/images/favicon.ico" type="image/x-icon">
+</head>
+
+<body>
+<center>
+  <div class="wrapper">
+    <div class="profile-card">
+      <div class="profile-card__img">
+        <img src={{url_for('static', filename=profile_pic)}} alt="profile card">
+      </div>
+
+      <div class="profile-card__cnt">
+        <div class="profile-card__name">{{ user_name }}</div>
+        <div class="profile-card__txt">{{ name }}</div>
+        <div class="profile-card-loc">
+          <span class="profile-card-loc__txt">
+            {{ bio }}
+          </span>
+        </div>
+
+        <div class="profile-card-inf">
+
+          <div class="profile-card-inf__item">
+            <div class="profile-card-inf__title">{{ media_count }}</div>
+            <div class="profile-card-inf__txt">Post</div>
+          </div>
+
+          <div class="profile-card-inf__item">
+            <div class="profile-card-inf__title">{{ followers_count }}</div>
+            <div class="profile-card-inf__txt">Followers</div>
+          </div>
+
+          <div class="profile-card-inf__item">
+            <div class="profile-card-inf__title">{{ following_count }}</div>
+            <div class="profile-card-inf__txt">Following</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</center>
+</body>
+
+</html>
