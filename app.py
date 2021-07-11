@@ -11,15 +11,15 @@ app = Flask(__name__)
 
 user, db = '', ''
 
-# FIREBASE_CONFIG = {
-#     'apiKey': os.getenv('apiKey'),
-#     'authDomain': os.getenv('authDomain'),
-#     'databaseURL': os.getenv('databaseURL'),
-#     'projectId': os.getenv('projectId'),
-#     'storageBucket': os.getenv('storageBucket'),
-#     'messagingSenderId': os.getenv('messagingSenderId'),
-#     'appId': os.getenv('appId')
-# }
+FIREBASE_CONFIG = {
+    'apiKey': os.getenv('apiKey'),
+    'authDomain': os.getenv('authDomain'),
+    'databaseURL': os.getenv('databaseURL'),
+    'projectId': os.getenv('projectId'),
+    'storageBucket': os.getenv('storageBucket'),
+    'messagingSenderId': os.getenv('messagingSenderId'),
+    'appId': os.getenv('appId')
+}
 
 Gender_ar = ['Female', 'Male', 'Custom', 'Prefer Not To Say']
 
